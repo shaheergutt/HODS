@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "264759734624",
+    "project_id": "hods-2810",
+    "storage_bucket": "hods-2810.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:264759734624:android:aeabb6f282bb7d47aa6e05",
+        "android_client_info": {
+          "package_name": "com.hods.hods"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "264759734624-6pp8vm6c2vvo5u97a4vcf53qdftj7vkf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hods.hods",
+            "certificate_hash": "5e288f8e9a015bc9e000086984792d6838b33965"
+          }
+        },
+        {
+          "client_id": "264759734624-dgs70dg0v0usamdoudmoc5spphsg1nsq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4NNmMzN741wQP32H7Sq5daZ3AwCX_PK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "264759734624-dgs70dg0v0usamdoudmoc5spphsg1nsq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

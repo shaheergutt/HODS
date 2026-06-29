@@ -1,0 +1,200 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Auth helpers ────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwnerOf(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+
+    function isHostelOwner() {
+      return isAuthenticated() && getUserData().role == 'owner';
+    }
+
+    function isStudent() {
+      return isAuthenticated() && getUserData().role == 'student';
+    }
+
+    // ── USERS ───────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isOwnerOf(userId);
+      allow update: if isAuthenticated() && (isOwnerOf(userId) || isAdmin());
+      allow delete: if isAdmin();
+
+      // Nested AI Long-term Memory subcollections
+      match /memory/{document=**} {
+        allow read, write: if isAuthenticated() && (isOwnerOf(userId) || isAdmin());
+      }
+    }
+
+    // ── HOSTELS ─────────────────────────────────────────────────
+    match /hostels/{hostelId} {
+      allow read: if true;
+      allow create: if isHostelOwner() || isAdmin();
+      allow update: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        resource.data.hostelOwnerId == request.auth.uid ||
+        isAdmin()
+      );
+      allow delete: if isAdmin() || (
+        isAuthenticated() && (
+          resource.data.ownerId == request.auth.uid ||
+          resource.data.hostelOwnerId == request.auth.uid
+        )
+      );
+    }
+
+    // ── ROOMS ────────────────────────────────────────────────────
+    match /rooms/{roomId} {
+      allow read: if true;
+      allow create, update, delete: if isHostelOwner() || isAdmin();
+    }
+
+    // ── BOOKINGS ─────────────────────────────────────────────────
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow read: if isHostelOwner();
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── COMPLAINTS ───────────────────────────────────────────────
+    match /complaints/{complaintId} {
+      allow read: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.hostelOwnerId == request.auth.uid;
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.hostelOwnerId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── COMPLAINT CATEGORIES ─────────────────────────────────────
+    match /complaint_categories/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── NOTIFICATIONS ────────────────────────────────────────────
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // ── REVIEWS ──────────────────────────────────────────────────
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.studentId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // ── USER PREFERENCES ─────────────────────────────────────────
+    match /user_preferences/{userId} {
+      allow read, write: if isAuthenticated() && (userId == request.auth.uid || isAdmin());
+    }
+
+    // ── ROOMMATE PROFILES ────────────────────────────────────────
+    match /roommate_profiles/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // ── ROOMMATE REQUESTS ────────────────────────────────────────
+    match /roommate_requests/{requestId} {
+      allow read: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+      allow read: if isAuthenticated() && resource.data.receiverId == request.auth.uid;
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.senderId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.receiverId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAuthenticated() && (resource.data.senderId == request.auth.uid || isAdmin());
+    }
+
+    // ── CHATS & MESSAGES ─────────────────────────────────────────
+    match /chats/{chatId} {
+      allow read, update: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow read, update: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow read, update: if isAdmin();
+      allow create: if isAuthenticated() && (
+        request.resource.data.studentId == request.auth.uid ||
+        request.resource.data.ownerId == request.auth.uid
+      );
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated() && get(/databases/$(database)/documents/chats/$(chatId)).data.studentId == request.auth.uid;
+        allow read, write: if isAuthenticated() && get(/databases/$(database)/documents/chats/$(chatId)).data.ownerId == request.auth.uid;
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // ── CHAT CONVERSATIONS ──────────────────────────────────────
+    match /chat_conversations/{convId} {
+      allow read, write: if isAuthenticated() && convId == request.auth.uid;
+      allow read, write: if isAuthenticated() && resource.data.studentId == request.auth.uid;
+      allow read, write: if isAuthenticated() && resource.data.ownerId == request.auth.uid;
+      allow read, write: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read, write: if isAuthenticated() && convId == request.auth.uid;
+        allow read, write: if isAuthenticated() && get(/databases/$(database)/documents/chat_conversations/$(convId)).data.studentId == request.auth.uid;
+        allow read, write: if isAuthenticated() && get(/databases/$(database)/documents/chat_conversations/$(convId)).data.ownerId == request.auth.uid;
+        allow read, write: if isAdmin();
+      }
+    }
+
+    // ── KNOWLEDGE BASE ──────────────────────────────────────────
+    match /knowledge_base/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── KNOWLEDGE ────────────────────────────────────────────────
+    match /knowledge/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── CITIES ───────────────────────────────────────────────────
+    match /cities/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── AMENITIES ────────────────────────────────────────────────
+    match /amenities/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // ── UNIVERSITIES ─────────────────────────────────────────────
+    match /universities/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
