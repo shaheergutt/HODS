@@ -150,9 +150,9 @@ class Goal {
 }
 
 class WorkingMemory {
-  final Map<String, dynamic> facts;
+  Map<String, dynamic> facts;
 
-  WorkingMemory([Map<String, dynamic>? facts]) : facts = facts ?? <String, dynamic>{};
+  WorkingMemory([Map<String, dynamic>? facts]) : facts = Map<String, dynamic>.from(facts ?? <String, dynamic>{});
 
   factory WorkingMemory.fromMap(Map<String, dynamic> map) {
     return WorkingMemory(Map<String, dynamic>.from(map['facts'] ?? map));
@@ -236,11 +236,11 @@ class ExecutionState {
     required this.role,
     this.conversationSummary = '',
     this.currentIteration = 0,
-    this.steps = const [],
-    this.goals = const [],
+    List<PlanningStep>? steps,
+    List<Goal>? goals,
     WorkingMemory? workingMemory,
-    this.observations = const [],
-    this.toolExecutionHistory = const [],
+    List<PlannerObservation>? observations,
+    List<ToolResult>? toolExecutionHistory,
     String? stopReason,
     KnowledgeContext? knowledgeContext,
     RecommendationContext? recommendationContext,
@@ -248,11 +248,15 @@ class ExecutionState {
     this.memoryContext,
     List<double>? plannerConfidenceHistory,
     List<double>? reflectionConfidenceHistory,
-  })  : workingMemory = workingMemory ?? WorkingMemory(),
+  })  : steps = List<PlanningStep>.from(steps ?? []),
+        goals = List<Goal>.from(goals ?? []),
+        workingMemory = workingMemory ?? WorkingMemory(),
+        observations = List<PlannerObservation>.from(observations ?? []),
+        toolExecutionHistory = List<ToolResult>.from(toolExecutionHistory ?? []),
         knowledgeContext = knowledgeContext ?? KnowledgeContext(),
         recommendationContext = recommendationContext ?? RecommendationContext(),
-        plannerConfidenceHistory = plannerConfidenceHistory ?? [],
-        reflectionConfidenceHistory = reflectionConfidenceHistory ?? [];
+        plannerConfidenceHistory = List<double>.from(plannerConfidenceHistory ?? []),
+        reflectionConfidenceHistory = List<double>.from(reflectionConfidenceHistory ?? []);
 
   Map<String, dynamic> toMap() {
     return {
@@ -730,13 +734,16 @@ class KnowledgeContext {
   final Map<String, dynamic> sourceMetadata;
 
   KnowledgeContext({
-    this.retrievedChunks = const [],
+    List<RetrievalResult>? retrievedChunks,
     this.retrievalConfidence = 1.0,
     this.retrievalReason = '',
-    this.knowledgeGaps = const [],
-    this.citations = const [],
-    this.sourceMetadata = const {},
-  });
+    List<String>? knowledgeGaps,
+    List<String>? citations,
+    Map<String, dynamic>? sourceMetadata,
+  })  : retrievedChunks = List<RetrievalResult>.from(retrievedChunks ?? []),
+        knowledgeGaps = List<String>.from(knowledgeGaps ?? []),
+        citations = List<String>.from(citations ?? []),
+        sourceMetadata = Map<String, dynamic>.from(sourceMetadata ?? {});
 
   Map<String, dynamic> toMap() {
     return {
@@ -830,12 +837,14 @@ class RecommendationContext {
   final List<String> recommendationTradeoffs;
 
   RecommendationContext({
-    this.rankedCandidates = const [],
+    List<RecommendationCandidate>? rankedCandidates,
     this.recommendationReasoning = '',
     this.recommendationConfidence = 1.0,
-    this.plannerObservations = const [],
-    this.recommendationTradeoffs = const [],
-  });
+    List<String>? plannerObservations,
+    List<String>? recommendationTradeoffs,
+  })  : rankedCandidates = List<RecommendationCandidate>.from(rankedCandidates ?? []),
+        plannerObservations = List<String>.from(plannerObservations ?? []),
+        recommendationTradeoffs = List<String>.from(recommendationTradeoffs ?? []);
 
   Map<String, dynamic> toMap() {
     return {
@@ -1133,7 +1142,7 @@ class AgentTask {
   final AgentCapability targetAgent;
   final String objective;
   final String priority; // 'high', 'medium', 'low'
-  final Map<String, dynamic> requiredInputs;
+  Map<String, dynamic> requiredInputs;
   final List<String> expectedOutputs;
   String status; // 'pending', 'running', 'completed', 'failed'
 
@@ -1142,10 +1151,11 @@ class AgentTask {
     required this.targetAgent,
     required this.objective,
     this.priority = 'medium',
-    this.requiredInputs = const {},
-    this.expectedOutputs = const [],
+    Map<String, dynamic>? requiredInputs,
+    List<String>? expectedOutputs,
     this.status = 'pending',
-  });
+  })  : requiredInputs = Map<String, dynamic>.from(requiredInputs ?? {}),
+        expectedOutputs = List<String>.from(expectedOutputs ?? []);
 
   Map<String, dynamic> toMap() {
     return {
@@ -1264,11 +1274,12 @@ class CollaborationPlan {
 
   CollaborationPlan({
     required this.originalRequest,
-    required this.tasks,
+    List<AgentTask>? tasks,
     required this.executionStrategy,
-    required this.dependencies,
+    List<String>? dependencies,
     required this.estimatedComplexity,
-  });
+  })  : tasks = List<AgentTask>.from(tasks ?? []),
+        dependencies = List<String>.from(dependencies ?? []);
 
   Map<String, dynamic> toMap() {
     return {
@@ -1300,13 +1311,17 @@ class CollaborationState {
   final List<AgentMessage> collaborationHistory;
 
   CollaborationState({
-    required this.activeTasks,
-    required this.completedTasks,
-    required this.failedTasks,
-    required this.agentResults,
+    List<AgentTask>? activeTasks,
+    List<AgentTask>? completedTasks,
+    List<AgentTask>? failedTasks,
+    Map<String, AgentResult>? agentResults,
     required this.mergedWorkingMemory,
-    required this.collaborationHistory,
-  });
+    List<AgentMessage>? collaborationHistory,
+  })  : activeTasks = List<AgentTask>.from(activeTasks ?? []),
+        completedTasks = List<AgentTask>.from(completedTasks ?? []),
+        failedTasks = List<AgentTask>.from(failedTasks ?? []),
+        agentResults = Map<String, AgentResult>.from(agentResults ?? {}),
+        collaborationHistory = List<AgentMessage>.from(collaborationHistory ?? []);
 
   Map<String, dynamic> toMap() {
     return {

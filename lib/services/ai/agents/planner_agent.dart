@@ -268,7 +268,9 @@ Instructions:
       }
 
       if (result.newWorkingMemoryFacts != null) {
-        state.workingMemory.facts.addAll(result.newWorkingMemoryFacts!);
+        final mutable = Map<String, dynamic>.from(state.workingMemory.facts);
+        mutable.addAll(result.newWorkingMemoryFacts!);
+        state.workingMemory.facts = mutable;
       }
 
       // Check termination flags

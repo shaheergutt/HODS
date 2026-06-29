@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HODS - Hostel Management & AI Recommendation Engine
 
 HODS is an enterprise-grade solution for student hostel management, smart room allocations, real-time complaint tracking, compatibility-based roommate matching, and multi-agent AI recommendations.
@@ -96,3 +97,7 @@ flutter build apk --release
 ## 👥 Contributors
 - **FYP Candidate**: Software Engineer & Lead Mobile developer.
 - **Supervisor**: Academic Mentor & Evaluator.
+=======
+# HODS
+A mobile based application for booking hostels
+>>>>>>> 035c74bed5becd90985f98a371ef6b5171d69673

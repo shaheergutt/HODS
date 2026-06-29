@@ -59,8 +59,8 @@ class AgentExecutor {
           _logger.logTaskResult(timeoutResult);
           return timeoutResult;
         }
-      } catch (e) {
-        _logger.logRetry(task.taskId, attempt, e.toString());
+      } catch (e, stackTrace) {
+        _logger.logRetry(task.taskId, attempt, '$e\n$stackTrace');
         if (attempt >= maxRetries) {
           final errorResult = AgentResult(
             taskId: task.taskId,
@@ -68,7 +68,7 @@ class AgentExecutor {
             success: false,
             confidence: 0.0,
             outputs: {},
-            observations: ['Failed: ${e.toString()}'],
+            observations: ['Failed: $e'],
             executionTime: DateTime.now().difference(startTime),
           );
           _logger.logTaskResult(errorResult);

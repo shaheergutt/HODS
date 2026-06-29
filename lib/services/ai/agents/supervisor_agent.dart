@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../../../models/user_model.dart';
 import '../ai_types.dart';
@@ -26,7 +27,8 @@ class SupervisorAgent {
     UserRole role, {
     WorkingMemory? initialWorkingMemory,
   }) async {
-    final startTime = DateTime.now();
+    try {
+      final startTime = DateTime.now();
     _logger.logCollaborationStart(message);
 
     _progressManager?.emit(ProgressEvent(
@@ -131,7 +133,13 @@ Output a structured JSON conforming to the CollaborationPlan schema.
         agentName: 'SupervisorAgent',
         timestamp: DateTime.now(),
       ));
-    } catch (e) {
+    } catch (e, stackTrace) {
+      developer.log(
+        '[SupervisorAgent] Error formulating CollaborationPlan: $e',
+        name: 'SupervisorAgent',
+        error: e,
+        stackTrace: stackTrace,
+      );
       // Fallback plan if structured output fails
       plan = CollaborationPlan(
         originalRequest: message,
@@ -166,7 +174,9 @@ Output a structured JSON conforming to the CollaborationPlan schema.
     // Stage 1: Memory
     final memoryTasks = plan.tasks.where((t) => t.targetAgent == AgentCapability.memory).toList();
     for (final task in memoryTasks) {
-      task.requiredInputs['userId'] = userId;
+      final mutableRequired = Map<String, dynamic>.from(task.requiredInputs);
+      mutableRequired['userId'] = userId;
+      task.requiredInputs = mutableRequired;
       final res = await _executor.executeTask(task, state);
       agentResults[task.taskId] = res;
       if (res.success) {
@@ -188,7 +198,9 @@ Output a structured JSON conforming to the CollaborationPlan schema.
 
     if (parallelTasks.isNotEmpty) {
       final futures = parallelTasks.map((task) async {
-        task.requiredInputs['userId'] = userId;
+        final mutableRequired = Map<String, dynamic>.from(task.requiredInputs);
+        mutableRequired['userId'] = userId;
+        task.requiredInputs = mutableRequired;
         task.status = 'running';
         final res = await _executor.executeTask(task, state);
         agentResults[task.taskId] = res;
@@ -207,7 +219,9 @@ Output a structured JSON conforming to the CollaborationPlan schema.
     // Stage 3: Recommendation
     final recTasks = plan.tasks.where((t) => t.targetAgent == AgentCapability.recommendation).toList();
     for (final task in recTasks) {
-      task.requiredInputs['userId'] = userId;
+      final mutableRequired = Map<String, dynamic>.from(task.requiredInputs);
+      mutableRequired['userId'] = userId;
+      task.requiredInputs = mutableRequired;
       final res = await _executor.executeTask(task, state);
       agentResults[task.taskId] = res;
       if (res.success) {
@@ -233,7 +247,9 @@ Output a structured JSON conforming to the CollaborationPlan schema.
     while (reflectionCycle < 2) {
       reflectionCycle++;
       final refTask = reflectionTasks.first;
-      refTask.requiredInputs['userId'] = userId;
+      final mutableRequired = Map<String, dynamic>.from(refTask.requiredInputs);
+      mutableRequired['userId'] = userId;
+      refTask.requiredInputs = mutableRequired;
       
       final res = await _executor.executeTask(refTask, state);
       agentResults[refTask.taskId] = res;
@@ -269,11 +285,13 @@ Output a structured JSON conforming to the CollaborationPlan schema.
                 : AgentCapability.knowledge;
             
             final repairTask = AgentTask(
-              taskId: 'repair_task_${reflectionCycle}',
+              taskId: 'repair_task_$reflectionCycle',
               targetAgent: repairAgent,
               objective: r.issues.firstOrNull?.suggestedFix ?? 'Resolve constraint conflict',
             );
-            repairTask.requiredInputs['userId'] = userId;
+            final mutableRequired = Map<String, dynamic>.from(repairTask.requiredInputs);
+            mutableRequired['userId'] = userId;
+            repairTask.requiredInputs = mutableRequired;
             
             final repairRes = await _executor.executeTask(repairTask, state);
             agentResults[repairTask.taskId] = repairRes;
@@ -286,6 +304,15 @@ Output a structured JSON conforming to the CollaborationPlan schema.
 
     _logger.logCollaborationEnd(colState, DateTime.now().difference(startTime).inMilliseconds);
     return state;
+    } catch (e, stackTrace) {
+      developer.log(
+        '[SupervisorAgent] Fatal error during collaboration: $e',
+        name: 'SupervisorAgent',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 
   /// Resolves disagreements/contradictions using dynamic LLM feedback.
@@ -329,8 +356,17 @@ Format your output strictly as a JSON object:
       );
 
       final Map<String, dynamic> resolvedFacts = Map<String, dynamic>.from(parsed['resolvedFacts'] ?? {});
-      state.workingMemory.facts.addAll(resolvedFacts);
+      final mutable = Map<String, dynamic>.from(state.workingMemory.facts);
+      mutable.addAll(resolvedFacts);
+      state.workingMemory.facts = mutable;
 
-    } catch (_) {}
+    } catch (e, stackTrace) {
+      developer.log(
+        '[SupervisorAgent] Error resolving conflicts: $e',
+        name: 'SupervisorAgent',
+        error: e,
+        stackTrace: stackTrace,
+      );
+    }
   }
 }

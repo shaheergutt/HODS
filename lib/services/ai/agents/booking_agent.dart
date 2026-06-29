@@ -123,7 +123,9 @@ Format your output strictly as a JSON object:
 
         // Update Working Memory with any results
         if (toolResult.success && toolResult.data.isNotEmpty) {
-          state.workingMemory.facts.addAll(toolResult.data);
+          final mutable = Map<String, dynamic>.from(state.workingMemory.facts);
+          mutable.addAll(toolResult.data);
+          state.workingMemory.facts = mutable;
         }
 
         _progressManager?.emit(ProgressEvent(
