@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # HODS - Hostel Management & AI Recommendation Engine
 
 HODS is an enterprise-grade solution for student hostel management, smart room allocations, real-time complaint tracking, compatibility-based roommate matching, and multi-agent AI recommendations.
